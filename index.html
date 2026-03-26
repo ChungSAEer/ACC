@@ -563,7 +563,7 @@ function showPopup(type, title, desc) {
   popup.classList.add('show');
   setTimeout(() => {
     if (popup.classList.contains('show')) popup.classList.remove('show');
-  }, 4000);
+  }, 10000);
 }
 
 const sleep = ms => new Promise(r => setTimeout(r, ms));
@@ -797,7 +797,7 @@ Vui lòng chọn phản hồi:`;
   }
   
   setProgress(100, 'HOÀN THÀNH');
-  await sleep(550);
+  await sleep(250);
   
   if (finalResult) {
     await log(`[${ts()}] ⚠ KẾT QUẢ: PHÁT HIỆN MÃ ẨN`, 'error');

